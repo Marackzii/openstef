@@ -5,7 +5,6 @@ from typing import Optional
 
 import numpy as np
 from sklearn.base import RegressorMixin
-
 from xgboost import XGBRegressor
 
 from openstef.model.regressors.regressor import OpenstfRegressor
@@ -37,13 +36,10 @@ class XGBOpenstfRegressor(XGBRegressor, OpenstfRegressor):
         x: np.array,
         y: np.array,
         *,
-        early_stopping_rounds: Optional[int] = None,
         callbacks: Optional[list] = None,
         eval_metric: Optional[str] = None,
         **kwargs
     ):
-        if early_stopping_rounds is not None:
-            self.set_params(early_stopping_rounds=early_stopping_rounds)
         if callbacks is not None:
             self.set_params(callbacks=callbacks)
         if eval_metric is not None:

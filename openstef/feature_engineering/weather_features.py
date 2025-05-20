@@ -3,24 +3,17 @@
 # SPDX-License-Identifier: MPL-2.0
 
 """This module contains all wheather related functions used for feature engineering."""
-import logging
 from typing import Union
 
 import numpy as np
 import pandas as pd
 import pvlib
-import structlog
 from pvlib.location import Location
 
 from openstef.data_classes.prediction_job import PredictionJobDataClass
-from openstef.settings import Settings
+from openstef.logging.logger_factory import get_logger
 
-structlog.configure(
-    wrapper_class=structlog.make_filtering_bound_logger(
-        logging.getLevelName(Settings.log_level)
-    )
-)
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 # Set some (nameless) constants for the Antoine equation:
@@ -353,8 +346,11 @@ def add_additional_wind_features(
             for x in feature_names
         )
 
-    # Add add_additional_wind_features
-    if "windspeed" in data.columns and additional_wind_features:
+    if (
+        "windspeed_100m" not in data.columns
+        and "windspeed" in data.columns
+        and additional_wind_features
+    ):
         data["windspeed_100mExtrapolated"] = calculate_windspeed_at_hubheight(
             data["windspeed"]
         )
@@ -363,7 +359,6 @@ def add_additional_wind_features(
             data["windspeed_100mExtrapolated"]
         )
 
-    # Do extra check
     if "windspeed_100m" in data.columns and additional_wind_features:
         data["windpowerFit_harm_arome"] = calculate_windturbine_power_output(
             data["windspeed_100m"].astype(float)

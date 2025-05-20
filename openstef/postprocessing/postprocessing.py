@@ -1,17 +1,15 @@
 # SPDX-FileCopyrightText: 2017-2023 Contributors to the OpenSTEF project <korte.termijn.prognoses@alliander.com> # noqa E501>
 #
 # SPDX-License-Identifier: MPL-2.0
-import logging
 from enum import Enum
 
 import numpy as np
 import pandas as pd
-import structlog
 
 from openstef.data_classes.prediction_job import PredictionJobDataClass
 from openstef.enums import ForecastType
 from openstef.feature_engineering import weather_features
-from openstef.settings import Settings
+from openstef.logging.logger_factory import get_logger
 
 # this is the default for "Lagerwey100"
 TURBINE_DATA = {
@@ -221,12 +219,7 @@ def add_prediction_job_properties_to_forecast(
         Dataframe with added metadata.
 
     """
-    structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(
-            logging.getLevelName(Settings.log_level)
-        )
-    )
-    logger = structlog.get_logger(__name__)
+    logger = get_logger(__name__)
 
     logger.info("Postproces in preparation of storing")
     if forecast_type is None:
@@ -262,9 +255,14 @@ def sort_quantiles(
     if len(p_columns) == 0:
         return forecast
 
-    # sort the columns
+    # Sort the columns
     p_columns = np.sort(p_columns)
 
     forecast.loc[:, p_columns] = forecast[p_columns].apply(sorted, axis=1).to_list()
+
+    # Set the forecast columun equal to the median if available
+    median_col = f"{quantile_col_start}50"
+    if median_col in forecast.columns:
+        forecast["forecast"] = forecast[median_col]
 
     return forecast

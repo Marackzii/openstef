@@ -6,6 +6,8 @@ import glob
 import os
 import unittest
 from datetime import UTC, datetime, timedelta
+from test.unit.utils.base import BaseTestCase
+from test.unit.utils.data import TestData
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -35,12 +37,9 @@ from openstef.pipeline.train_model import (
     train_pipeline_common,
 )
 from openstef.validation import validation
-from test.unit.utils.base import BaseTestCase
-from test.unit.utils.data import TestData
 
 
-class DummyObjective(RegressorObjective):
-    ...
+class DummyObjective(RegressorObjective): ...
 
 
 class DummyRegressor(CustomOpenstfRegressor):
@@ -69,7 +68,7 @@ class DummyRegressor(CustomOpenstfRegressor):
 
         return np.zeros(len(X))
 
-    def set_feature_importance(self):
+    def get_feature_importance(self):
         return pd.DataFrame(
             {
                 "weight": [0] * len(self.feature_names),
@@ -157,6 +156,11 @@ class TestTrainModelPipeline(BaseTestCase):
                             function=split_dummy_arima,
                             arguments={},
                         )
+                
+                if model_type == ModelType.MEDIAN:
+                    # The median model depends solely on the lag features
+                    # and will not run with a DataPrep class that does not provide them.
+                    continue
 
                 model, report, modelspecs, _ = train_model_pipeline_core(
                     pj=pj, model_specs=model_specs, input_data=train_input
@@ -197,7 +201,7 @@ class TestTrainModelPipeline(BaseTestCase):
                     operational_score_data,
                 ) = split_data_train_validation_test(data_with_features)
 
-                importance = model.set_feature_importance()
+                importance = model.get_feature_importance()
                 self.assertIsInstance(importance, pd.DataFrame)
 
     def test_train_model_pipeline_core_happy_flow(self):
